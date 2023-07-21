@@ -417,6 +417,9 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
 9. Upon successful execution of the Pipeline, the Velero backup data files should show up on your local NFS server.
    ```
    [ec2-user@ip-192-168-0-90 ~]$ cd sno
+
+   [ec2-user@ip-192-168-0-90 sno]$ pwd
+   /home/ec2-user/sno
    
    [ec2-user@ip-192-168-0-90 sno]$ ls
    backups  restic
@@ -433,7 +436,9 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    config  data  index  keys  snapshots
    ```
 ## Restore Pipeline Instructions   
-1. TBC - in progress
+The restoration pipeline would be the exact same steps as the backup pipeline, but in a reverse manner.  
+
+1. In progress
 
 ## Bugs Encountered
 If you create a Restic `Backup` CR for a namespace, empty the object storage bucket, and then recreate the `Backup` CR for the same namespace, the recreated `Backup` CR fails. 
