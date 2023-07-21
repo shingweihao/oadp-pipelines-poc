@@ -79,7 +79,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    NAME             PHASE       LAST VALIDATED   AGE   DEFAULT
    default-oadp-1   Available   60s              11m   true
    ```
-4. (Optional) Deploying an application  
+4. **(Optional)** Deploying an application  
 
    I will be deploying a stateful MySQL application in the **mysql-persistent** namespace.  
    This same application will be used for the backup and restoration process in this example.
@@ -291,7 +291,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    $ oc create secret generic bucket-secret --from-literal=AWS_ACCESS_KEY_ID=<your AWS access key ID> --from-literal=AWS_SECRET_ACCESS_KEY=<your AWS secret access key> -n default
    ```
    
-6. (Optional) Creating ConfigMap for NFS server  
+6. **(Optional)** Creating ConfigMap for NFS server  
 
    As my NFS server is an EC2 instance, I have created a ConfigMap object to mount my SSH identity file onto another Tekton workspace.
    
