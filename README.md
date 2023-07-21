@@ -411,5 +411,21 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    ```
 8. Creating Pipeline and PipelineRun resources
    
-   You may refer to the PoC video (https://www.youtube.com/watch?v=nQsMf-Lc7FY) @ 7:55, to see how the Pipeline is created via GUI.  
-   (Ensure that this is created on the same namespace as your Bucket Secret and ConfigMap objects.)  
+   You may refer to the PoC video (https://www.youtube.com/watch?v=nQsMf-Lc7FY) @ 7:55 onwards, to observe how the Pipeline can be created via GUI.  
+   (Ensure that the Pipeline and PipelineRun resources are created on the same namespace as your Bucket Secret and ConfigMap objects.)  
+
+9. TBC
+
+## Bugs Encountered
+If you create a Restic `Backup` CR for a namespace, empty the object storage bucket, and then recreate the `Backup` CR for the same namespace, the recreated `Backup` CR fails. 
+
+The `velero` pod log displays the following error message: `stderr=Fatal: unable to open config file: Stat: The specified key does not exist.\nIs there a repository at the following location?`.  
+
+**Cause**  
+Velero does not recreate or update the Restic repository from the `ResticRepository` manifest if the Restic directories are deleted from object storage. See [Velero issue 4421](https://github.com/vmware-tanzu/velero/issues/4421) for more information.  
+
+**Solution**  
+Remove the related Restic repository from the namespace by running the following command:  
+```
+$ oc delete backuprepositories.velero.io -n openshift-adp <name_of_backup_repository>
+```
