@@ -301,7 +301,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
 
     I will be saving it under the "default" namespace, as my Pipelines will be running in the "default" namespace as well.    
    ```
-   $ oc create configmap --from-file=nfsserver.pem -n default
+   $ oc create configmap --from-file=./nfsserver.pem -n default
    ```
 
 7. Creating Backup tasks on OpenShift Pipelines (Tekton)
