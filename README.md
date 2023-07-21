@@ -52,7 +52,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
            default: true
            objectStorage:
              bucket: <YOUR BUCKET NAME HERE>
-             prefix: <FOLDER WHERE VELERO FILES WILL BE STORED>
+             prefix: sno #Folder where Velero files will be stored, in this example I will be using /sno for all tasks. Change the bucket-prefix in the tasks whenever necessary.
            provider: aws
      configuration:
        restic:
@@ -274,6 +274,9 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
            name: todolist
 
    $ oc apply -f mysql-persistent.yaml
+
+   # If the application is unable to deploy due to permission issues, assign privileged SCC to mysql-persistent ServiceAccount.
+   $ oc adm policy add-scc-to-user privileged system:serviceaccount:mysql-persistent:mysql-persistent-sa
    ```
 5. Creating Backup tasks on OpenShift Pipelines (Tekton)
 
