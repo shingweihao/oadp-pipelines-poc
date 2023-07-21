@@ -291,11 +291,8 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    spec:
      params:
        - name: name-of-backup
-         default: backup
        - name: namespace-to-backup
-         default: mysql-persistent
        - name: oadp-dpa-location
-         default: default-oadp-1
      steps:
        - name: create-backup
          image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
@@ -333,13 +330,9 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
          mountPath: /sno
      params:
        - name: name-of-backup
-         default: backup
-      - name: namespace-to-backup
-         default: mysql-persistent
+       - name: namespace-to-backup
        - name: bucket-name
-         default: s3-oadp
        - name: bucket-secret
-         default: bucket-secret
      steps:
        - name: s3-to-workspace
          image: amazon/aws-cli
@@ -356,6 +349,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    ```
    ```
    $ vi step3-backup-workspacetonfs.yaml
+   
    # Task 3: SCP files from Tekton workspace into local NFS server
    # Note: As pods are ephemeral for each TaskRun, we need to add the host fingerprint manually in the task. If not, the pipeline will fail due to permission issues.
    apiVersion: tekton.dev/v1beta1
@@ -370,11 +364,10 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
          mountPath: /nfsserver.pem
      params:
        - name: name-of-backup
-         default: backup
        - name: bucket-name
-         default: s3-oadp
        - name: bucket-secret
-         default: bucket-secret
+       - name: ssh-fingerprint
+         default: <Your NFS IP> ecdsa-sha2-nistp256 <your fingerprint here>
      steps:
        - name: workspace-to-nfs
          image: quay.io/devfile/base-developer-image:ubi8-latest
@@ -385,8 +378,8 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
          args:
            - |-
              mkdir ~/.ssh/
-             echo "192.168.0.177 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBC/aSgXr0SFkpxgizzhGCIjdnCj3w/89IzWzwiterN32RE4SplWqRlA+5PtxH9fPX64//bI5Pc7e25JZhJTL8eE=" > ~/.ssh/known_hosts #Change to your host fingerprint manually
-             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" $(workspaces.bucket-prefix.path)/ ec2-user@192.168.0.177:/home/ec2-user/
+             echo "$(params.ssh-fingerprint)" > ~/.ssh/known_hosts
+             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" $(workspaces.bucket-prefix.path)/ <user>@<your-nfs-ip>:<directory>
 
    $ oc apply -f step3-backup-workspacetonfs
    ```
