@@ -14,7 +14,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
 4. Retrieve Velero backup data files from S3 bucket and save into Tekton workspace temporarily.
 5. Retrieve Velero backup data files from Tekton workspace into local NFS storage.
 
-## Instructions
+## Backup Instructions
 1. Install the OADP (stable-1.2) and OpenShift Pipelines (1.10.4) operators from the Operator Hub.  
    ![image](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/a27fdf8d-e5ba-467c-8ada-72f93536f366)![image](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/bc22d7d5-d2f5-45d9-9bf0-cdc65e7a1794)
 
@@ -278,7 +278,33 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    # If the application is unable to deploy due to permission issues, assign privileged SCC to mysql-persistent ServiceAccount.
    $ oc adm policy add-scc-to-user privileged system:serviceaccount:mysql-persistent:mysql-persistent-sa
    ```
-5. Creating Backup tasks on OpenShift Pipelines (Tekton)
+4. Creating ObjectBucket Secret  
+
+   We will need to create a Secret object to store our bucket's "ACCESS_KEY_ID" and "SECRET_ACCESS_KEY", as required on step 2 of our backup task.  
+
+   Ensure that your Secret is in:
+   - The same namespace as where your Pipelines will be running
+   - Different namespace from your application that you're backing up
+
+   I will be saving it under the "default" namespace, as my Pipelines will be running in the "default" namespace as well.  
+   ```
+   $ oc create secret generic bucket-secret --from-literal=AWS_ACCESS_KEY_ID=<your AWS access key ID> --from-literal=AWS_SECRET_ACCESS_KEY=<your AWS secret access key> -n default
+   ```
+   
+6. (Optional) Creating ConfigMap for NFS server  
+
+   As my NFS server is an EC2 instance, I have created a ConfigMap object to mount my SSH identity file onto another Tekton workspace.
+   
+   Ensure that your ConfigMap is in:
+   - The same namespace as where your Pipelines will be running
+   - Different namespace from your application that you're backing up
+
+    I will be saving it under the "default" namespace, as my Pipelines will be running in the "default" namespace as well.    
+   ```
+   $ oc create configmap --from-file=nfsserver.pem -n default
+   ```
+
+7. Creating Backup tasks on OpenShift Pipelines (Tekton)
 
    ```
    $ vi step1-backup-createbackup
@@ -367,7 +393,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
        - name: bucket-name
        - name: bucket-secret
        - name: ssh-fingerprint
-         default: <Your NFS IP> ecdsa-sha2-nistp256 <your fingerprint here>
+         default: <your-nfs-server-fingerprint-here>
      steps:
        - name: workspace-to-nfs
          image: quay.io/devfile/base-developer-image:ubi8-latest
@@ -379,7 +405,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
            - |-
              mkdir ~/.ssh/
              echo "$(params.ssh-fingerprint)" > ~/.ssh/known_hosts
-             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" $(workspaces.bucket-prefix.path)/ <user>@<your-nfs-ip>:<directory>
+             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" $(workspaces.bucket-prefix.path)/ <user>@<your-nfs-server-ip>:<directory>
 
    $ oc apply -f step3-backup-workspacetonfs
    ```
