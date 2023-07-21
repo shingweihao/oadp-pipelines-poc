@@ -432,7 +432,8 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    [ec2-user@ip-192-168-0-90 sno]$ ls restic/mysql-persistent/
    config  data  index  keys  snapshots
    ```
-   
+## Restore Pipeline Instructions   
+1. TBC - in progress
 
 ## Bugs Encountered
 If you create a Restic `Backup` CR for a namespace, empty the object storage bucket, and then recreate the `Backup` CR for the same namespace, the recreated `Backup` CR fails. 
