@@ -313,4 +313,35 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
                - $(params.namespace-to-backup)
                storageLocation: $(params.oadp-dpa-location)
              EOF
+
+   $ oc apply -f backup-tasks/step1-backup-createbackup
    ```
+   # Task 2: Retrieve Velero backup file from S3 and save into Tekton workspace
+   apiVersion: tekton.dev/v1beta1
+   kind: Task
+   metadata:
+     name: step2-backup-s3toworkspace
+   spec:
+     workspaces:
+       - name: bucket-prefix
+         mountPath: /sno
+     params:
+       - name: name-of-backup
+         default: backup
+       - name: bucket-name
+         default: s3-oadp
+       - name: bucket-secret
+         default: bucket-secret
+     steps:
+       - name: s3-to-workspace
+         image: amazon/aws-cli
+         envFrom:
+           - secretRef:
+               name: $(params.bucket-secret)
+         command: ["/bin/bash", "-c"]
+         args:
+           - |-
+             aws s3 sync s3://$(params.bucket-name)/sno/backups/$(params.name-of-backup)/ $(workspaces.bucket-prefix.path)/backups/$(params.name-of-backup)/
+             aws s3 sync s3://$(params.bucket-name)/sno/restic/ $(workspaces.bucket-prefix.path)/restic/
+   ```
+   
