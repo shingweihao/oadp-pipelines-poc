@@ -278,7 +278,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
 5. Creating Backup tasks on OpenShift Pipelines (Tekton)
 
    ```
-   $ vi step1-
+   $ vi step1-backup-createbackup
 
    # Task 1: Create Backup CR
    apiVersion: tekton.dev/v1beta1
