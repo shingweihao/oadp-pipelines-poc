@@ -7,14 +7,14 @@ Part 1: https://www.youtube.com/watch?v=nQsMf-Lc7FY
 Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk  
 ## Backup Architecture
 ![Screenshot 2023-07-22 004822](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/b92f707e-b057-448f-9a2c-ae76dbf50dc9)
-### Flow of architecture:  
+### Flow Of Architecture:  
 1. Create Backup CR
 2. OADP retrieves data and resources from target namespace, Velero backup data files will be created.
 3. OADP stores Velero backup data files into S3 bucket (defined in our DataProtectionApplication resource).
 4. Retrieve Velero backup data files from S3 bucket and save into Tekton workspace temporarily.
 5. Retrieve Velero backup data files from Tekton workspace into local NFS storage.
 
-## Backup Instructions
+## Backup Pipeline Instructions
 1. Install the OADP (stable-1.2) and OpenShift Pipelines (1.10.4) operators from the Operator Hub.  
    ![image](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/a27fdf8d-e5ba-467c-8ada-72f93536f366)![image](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/bc22d7d5-d2f5-45d9-9bf0-cdc65e7a1794)
 
@@ -414,7 +414,25 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    You may refer to the PoC video (https://www.youtube.com/watch?v=nQsMf-Lc7FY) @ 7:55 onwards, to observe how the Pipeline can be created via GUI.  
    (Ensure that the Pipeline and PipelineRun resources are created on the same namespace as your Bucket Secret and ConfigMap objects.)  
 
-9. TBC
+9. Upon successful execution of the Pipeline, the Velero backup data files should show up on your local NFS server.
+   ```
+   [ec2-user@ip-192-168-0-90 ~]$ cd sno
+   
+   [ec2-user@ip-192-168-0-90 sno]$ ls
+   backups  restic
+   
+   [ec2-user@ip-192-168-0-90 sno]$ ls backups/backup/
+   backup-csi-volumesnapshotclasses.json.gz   backup-resource-list.json.gz
+   backup-csi-volumesnapshotcontents.json.gz  backup-results.gz
+   backup-csi-volumesnapshots.json.gz         backup.tar.gz
+   backup-itemoperations.json.gz              backup-volumesnapshots.json.gz
+   backup-logs.gz                             velero-backup.json
+   backup-podvolumebackups.json.gz
+   
+   [ec2-user@ip-192-168-0-90 sno]$ ls restic/mysql-persistent/
+   config  data  index  keys  snapshots
+   ```
+   
 
 ## Bugs Encountered
 If you create a Restic `Backup` CR for a namespace, empty the object storage bucket, and then recreate the `Backup` CR for the same namespace, the recreated `Backup` CR fails. 
