@@ -1,0 +1,33 @@
+# Task 1: Create Backup CR
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: step1-backup-createbackup
+spec:
+  params:
+    - name: name-of-backup
+      default: backup
+    - name: namespace-to-backup
+      default: mysql-persistent
+    - name: oadp-dpa-location
+      default: default-oadp-1
+  steps:
+    - name: create-backup
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      command: ["/bin/bash", "-c"]
+      args:
+        - |-
+          cat << EOF | oc apply -f -
+          apiVersion: velero.io/v1
+          kind: Backup
+          metadata:
+            name: $(params.name-of-backup)
+            labels:
+              velero.io/storage-location: default
+            namespace: openshift-adp
+          spec:
+            defaultVolumesToRestic: true
+            includedNamespaces:
+            - $(params.namespace-to-backup)
+            storageLocation: $(params.oadp-dpa-location)
+          EOF
