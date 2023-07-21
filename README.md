@@ -319,6 +319,9 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
 
    $ oc apply -f backup-tasks/step1-backup-createbackup
    ```
+   ```
+   $ vi step2-backup-s3toworkspace.yaml
+
    # Task 2: Retrieve Velero backup file from S3 and save into Tekton workspace
    apiVersion: tekton.dev/v1beta1
    kind: Task
@@ -331,6 +334,8 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
      params:
        - name: name-of-backup
          default: backup
+      - name: namespace-to-backup
+         default: mysql-persistent
        - name: bucket-name
          default: s3-oadp
        - name: bucket-secret
@@ -345,6 +350,8 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
          args:
            - |-
              aws s3 sync s3://$(params.bucket-name)/sno/backups/$(params.name-of-backup)/ $(workspaces.bucket-prefix.path)/backups/$(params.name-of-backup)/
-             aws s3 sync s3://$(params.bucket-name)/sno/restic/ $(workspaces.bucket-prefix.path)/restic/
+             aws s3 sync s3://$(params.bucket-name)/sno/restic/ $(workspaces.bucket-prefix.path)/restic/$(params.namespace-to-backup)/
+
+   $ oc apply -f step2-backup-s3toworkspace.yaml
    ```
    
