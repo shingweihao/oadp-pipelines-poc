@@ -409,3 +409,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
 
    $ oc apply -f step3-backup-workspacetonfs
    ```
+8. Creating Pipeline and PipelineRun resources
+   
+   You may refer to the PoC video (https://www.youtube.com/watch?v=nQsMf-Lc7FY) @ 7:55, to see how the Pipeline is created via GUI.  
+   (Ensure that this is created on the same namespace as your Bucket Secret and ConfigMap objects.)  
