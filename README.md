@@ -354,4 +354,39 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
 
    $ oc apply -f step2-backup-s3toworkspace.yaml
    ```
-   
+   ```
+   $ vi step3-backup-workspacetonfs.yaml
+   # Task 3: SCP files from Tekton workspace into local NFS server
+   # Note: As pods are ephemeral for each TaskRun, we need to add the host fingerprint manually in the task. If not, the pipeline will fail due to permission issues.
+   apiVersion: tekton.dev/v1beta1
+   kind: Task
+   metadata:
+     name: step3-backup-workspacetonfs
+   spec:
+     workspaces:
+       - name: bucket-prefix
+         mountPath: /sno
+       - name: nfsserver.pem
+         mountPath: /nfsserver.pem
+     params:
+       - name: name-of-backup
+         default: backup
+       - name: bucket-name
+         default: s3-oadp
+       - name: bucket-secret
+         default: bucket-secret
+     steps:
+       - name: workspace-to-nfs
+         image: quay.io/devfile/base-developer-image:ubi8-latest
+         envFrom:
+           - secretRef:
+               name: $(params.bucket-secret)
+         command: ["/bin/bash", "-c"]
+         args:
+           - |-
+             mkdir ~/.ssh/
+             echo "192.168.0.177 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBC/aSgXr0SFkpxgizzhGCIjdnCj3w/89IzWzwiterN32RE4SplWqRlA+5PtxH9fPX64//bI5Pc7e25JZhJTL8eE=" > ~/.ssh/known_hosts #Change to your host fingerprint manually
+             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" $(workspaces.bucket-prefix.path)/ ec2-user@192.168.0.177:/home/ec2-user/
+
+   $ oc apply -f step3-backup-workspacetonfs
+   ```
