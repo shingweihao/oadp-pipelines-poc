@@ -440,7 +440,7 @@ The restoration pipeline would be the exact same steps as the backup pipeline, b
 
 It is made with the assumptions listed below:  
 1. Your Velero backup data files exist only in your local NFS server, and not in your S3 bucket.  
-2. Performed in a new cluster (it is doable in the same cluster chances are you will encounter the bug listed below).  
+2. Performed in another cluster. (Pipeline can be executed in the same cluster, but remember to delete the existing backupRepository before restoring - see [Bugs Encountered](#bugs-encountered).
 
 Creating Backup tasks on OpenShift Pipelines (Tekton)
    ```
@@ -529,7 +529,7 @@ Creating Backup tasks on OpenShift Pipelines (Tekton)
                restorePVs: true
              EOF
    ```
-End result: The namespace data (and also any applications that reside in it) should be restored to the same state to when the backup used was created.
+**The namespace data (and also any applications that reside in it) should be restored to the same state to when the backup used was created upon successful execution of the restoration pipeline.**
 ![image](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/2de01da8-1751-46d9-8397-659480d30a5e)
 
 
