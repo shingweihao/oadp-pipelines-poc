@@ -1,0 +1,27 @@
+# Task 3: Create Restore CR
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: step3-restore-createrestore
+spec:
+  params:
+    - name: name-of-restore
+    - name: name-of-backup
+    - name: namespace-to-restore
+    - name: oadp-dpa-location
+  steps:
+    - name: create-backup
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      command: ["/bin/bash", "-c"]
+      args:
+        - |-
+          cat << EOF | oc apply -f -
+          apiVersion: velero.io/v1
+          kind: Restore
+          metadata:
+            name: $(params.name-of-restore)
+            namespace: openshift-adp
+          spec:
+            backupName: $(params.name-of-backup)
+            restorePVs: true
+          EOF
