@@ -435,10 +435,100 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    [ec2-user@ip-192-168-0-90 sno]$ ls restic/mysql-persistent/
    config  data  index  keys  snapshots
    ```
-## Restore Pipeline Instructions   
+## Restoration Pipeline Instructions   
 The restoration pipeline would be the exact same steps as the backup pipeline, but in a reverse manner.  
 
-1. In progress
+It is made with the assumptions listed below:  
+1. Your Velero backup data files exist only in your local NFS server, and not in your S3 bucket.  
+2. Performed in a new cluster (it is doable in the same cluster chances are you will encounter the bug listed below).  
+
+Creating Backup tasks on OpenShift Pipelines (Tekton)
+   ```
+   # Task 1: SCP files from NFS server into Tekton workspace
+   apiVersion: tekton.dev/v1beta1
+   kind: Task
+   metadata:
+     name: step1-restore-nfstoworkspace
+   spec:
+     workspaces:
+       - name: bucket-prefix
+         mountPath: /sno
+       - name: nfsserver.pem
+         mountPath: /nfsserver.pem
+     params:
+       - name: name-of-backup
+       - name: bucket-name
+       - name: bucket-secret
+       - name: ssh-fingerprint
+         default: <your-nfs-server-fingerprint-here>
+     steps:
+       - name: nfs-to-workspace
+         image: quay.io/devfile/base-developer-image:ubi8-latest
+         envFrom:
+           - secretRef:
+               name: $(params.bucket-secret)
+         command: ["/bin/bash", "-c"]
+         args:
+           - |-
+             mkdir ~/.ssh/
+             echo "$(params.ssh-fingerprint)" > ~/.ssh/known_hosts
+             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" ec2-user@192.168.0.177:/home/ec2-user/$(workspaces.bucket-prefix.path)/ $(workspaces.bucket-prefix.path)/
+   ```
+   ```
+   # Task 2: Retrieve Velero backup file from Tekton workspace and save into S3
+   apiVersion: tekton.dev/v1beta1
+   kind: Task
+   metadata:
+     name: step2-restore-workspacetos3
+   spec:
+     workspaces:
+       - name: bucket-prefix
+         mountPath: /sno
+     params:
+       - name: name-of-backup
+       - name: bucket-name
+       - name: bucket-secret
+     steps:
+       - name: workspace-to-s3
+         image: amazon/aws-cli
+         envFrom:
+           - secretRef:
+               name: $(params.bucket-secret)
+         command: ["/bin/bash", "-c"]
+         args:
+           - |-
+             aws s3 sync $(workspaces.bucket-prefix.path)/ s3://$(params.bucket-name)/
+             sleep 60 #Buffer time for OADP operator to detect Velero backup data files
+   ```
+   ```
+   # Task 3: Create Restore CR
+   apiVersion: tekton.dev/v1beta1
+   kind: Task
+   metadata:
+     name: step3-restore-createrestore
+   spec:
+     params:
+       - name: name-of-restore
+       - name: name-of-backup
+       - name: namespace-to-restore
+       - name: oadp-dpa-location
+     steps:
+       - name: create-backup
+         image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+         command: ["/bin/bash", "-c"]
+         args:
+           - |-
+             cat << EOF | oc apply -f -
+             apiVersion: velero.io/v1
+             kind: Restore
+             metadata:
+               name: $(params.name-of-restore)
+               namespace: openshift-adp
+             spec:
+               backupName: $(params.name-of-backup)
+               restorePVs: true
+             EOF
+   ```
 
 ## Bugs Encountered
 If you create a Restic `Backup` CR for a namespace, empty the object storage bucket, and then recreate the `Backup` CR for the same namespace, the recreated `Backup` CR fails. 
