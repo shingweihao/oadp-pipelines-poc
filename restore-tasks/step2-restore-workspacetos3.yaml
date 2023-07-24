@@ -1,0 +1,24 @@
+# Task 2: Retrieve Velero backup file from Tekton workspace and save into S3
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: step2-restore-workspacetos3
+spec:
+  workspaces:
+    - name: bucket-prefix
+      mountPath: /sno
+  params:
+    - name: name-of-backup
+    - name: bucket-name
+    - name: bucket-secret
+  steps:
+    - name: workspace-to-s3
+      image: amazon/aws-cli
+      envFrom:
+        - secretRef:
+            name: $(params.bucket-secret)
+      command: ["/bin/bash", "-c"]
+      args:
+        - |-
+          aws s3 sync $(workspaces.bucket-prefix.path)/ s3://$(params.bucket-name)/
+          sleep 60 #Buffer time for OADP operator to detect Velero backup data files
