@@ -529,7 +529,7 @@ Creating Backup tasks on OpenShift Pipelines (Tekton)
                restorePVs: true
              EOF
    ```
-**The namespace data (and also any applications that reside in it) should be restored to the same state to when the backup used was created upon successful execution of the restoration pipeline.**
+**The namespace data (and also any applications that reside in it) should be restored to a desired state.**
 ![image](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/2de01da8-1751-46d9-8397-659480d30a5e)
 
 
