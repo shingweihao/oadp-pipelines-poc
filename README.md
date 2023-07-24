@@ -472,7 +472,7 @@ Creating Backup tasks on OpenShift Pipelines (Tekton)
            - |-
              mkdir ~/.ssh/
              echo "$(params.ssh-fingerprint)" > ~/.ssh/known_hosts
-             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" ec2-user@192.168.0.177:/home/ec2-user/$(workspaces.bucket-prefix.path)/ $(workspaces.bucket-prefix.path)/
+             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" <user>@<your-nfs-server-ip>:<directory> $(workspaces.bucket-prefix.path)/
    ```
    ```
    # Task 2: Retrieve Velero backup file from Tekton workspace and save into S3
