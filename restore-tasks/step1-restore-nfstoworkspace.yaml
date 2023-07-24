@@ -1,0 +1,29 @@
+# Task 1: SCP files from NFS server into Tekton workspace
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: step1-restore-nfstoworkspace
+spec:
+  workspaces:
+    - name: bucket-prefix
+      mountPath: /sno
+    - name: nfsserver.pem
+      mountPath: /nfsserver.pem
+  params:
+    - name: name-of-backup
+    - name: bucket-name
+    - name: bucket-secret
+    - name: ssh-fingerprint
+      default: <your-nfs-server-fingerprint-here>
+  steps:
+    - name: nfs-to-workspace
+      image: quay.io/devfile/base-developer-image:ubi8-latest
+      envFrom:
+        - secretRef:
+            name: $(params.bucket-secret)
+      command: ["/bin/bash", "-c"]
+      args:
+        - |-
+          mkdir ~/.ssh/
+          echo "$(params.ssh-fingerprint)" > ~/.ssh/known_hosts
+          scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" <user>@<your-nfs-server-ip>:<directory> $(workspaces.bucket-prefix.path)/
