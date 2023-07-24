@@ -529,6 +529,9 @@ Creating Backup tasks on OpenShift Pipelines (Tekton)
                restorePVs: true
              EOF
    ```
+**End result: The namespace that you've backed up should be restored to the state when the backup was created.**
+![image](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/2de01da8-1751-46d9-8397-659480d30a5e)
+
 
 ## Bugs Encountered
 If you create a Restic `Backup` CR for a namespace, empty the object storage bucket, and then recreate the `Backup` CR for the same namespace, the recreated `Backup` CR fails. 
