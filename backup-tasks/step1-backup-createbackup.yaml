@@ -6,11 +6,8 @@ metadata:
 spec:
   params:
     - name: name-of-backup
-      default: backup
     - name: namespace-to-backup
-      default: mysql-persistent
     - name: oadp-dpa-location
-      default: default-oadp-1
   steps:
     - name: create-backup
       image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
