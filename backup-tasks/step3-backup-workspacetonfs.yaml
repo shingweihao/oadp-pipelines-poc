@@ -1,5 +1,5 @@
 # Task 3: SCP files from Tekton workspace into local NFS server
-# Note: As pods are ephemeral for each TaskRun, we need to add the host fingerprint manually in the task. If not, the pipeline will fail due to permission issues.
+# As pods are ephemeral by nature, we need to add the host fingerprint manually for every instance of a task pod (else the pipeline will fail due to permission issues).
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
@@ -15,7 +15,9 @@ spec:
     - name: bucket-name
     - name: bucket-secret
     - name: ssh-fingerprint
-      default: <your-nfs-server-fingerprint-here>
+    - name: nfs-user
+    - name: nfs-server-ip
+    - name: nfs-directory
   steps:
     - name: workspace-to-nfs
       image: quay.io/devfile/base-developer-image:ubi8-latest
@@ -27,4 +29,4 @@ spec:
         - |-
           mkdir ~/.ssh/
           echo "$(params.ssh-fingerprint)" > ~/.ssh/known_hosts
-          scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" $(workspaces.bucket-prefix.path)/ <user>@<your-nfs-server-ip>:<directory>
+          scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" $(workspaces.bucket-prefix.path)/ $(params.nfs-user)@$(params.nfs-server.ip):$(params.nfs-directory)
