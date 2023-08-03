@@ -3,6 +3,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: step2-backup-s3toworkspace
+  namespace: pipeline-ns
 spec:
   workspaces:
     - name: bucket-prefix
@@ -21,5 +22,5 @@ spec:
       command: ["/bin/bash", "-c"]
       args:
         - |-
-          aws s3 sync s3://$(params.bucket-name)/sno/backups/$(params.name-of-backup)/ $(workspaces.bucket-prefix.path)/backups/$(params.name-of-backup)/
-          aws s3 sync s3://$(params.bucket-name)/sno/restic/ $(workspaces.bucket-prefix.path)/restic/$(params.namespace-to-backup)/
+          aws s3 sync s3://$(params.bucket-name)$(workspaces.bucket-prefix.path)/backups/$(params.name-of-backup)/ $(workspaces.bucket-prefix.path)/backups/$(params.name-of-backup)/
+          aws s3 sync s3://$(params.bucket-name)$(workspaces.bucket-prefix.path)/restic/ $(workspaces.bucket-prefix.path)/restic/$(params.namespace-to-backup)/
