@@ -309,35 +309,30 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
 
    $ vi pipelines-oadp-role.yaml
    apiVersion: rbac.authorization.k8s.io/v1
-   kind: Role
+   kind: ClusterRole
    metadata:
      name: pipelines-oadp-role
-     namespace: pipeline-ns
    rules:
      - apiGroups:
-         - ''
+         - 'velero.io'
        resources:
          - backups
        verbs:
-         - get
-         - watch
-         - list
-         - delete
-
+         - '*'
+   
    $ vi pipelines-oadp-rb.yaml
    apiVersion: rbac.authorization.k8s.io/v1
-   kind: RoleBinding
+   kind: ClusterRoleBinding
    metadata:
      name: pipelines-oadp-rb
-     namespace: pipeline-ns
+   subjects:
+     - kind: ServiceAccount
+       name: pipeline
+       namespace: pipeline-ns
    roleRef:
      apiGroup: rbac.authorization.k8s.io
-     kind: Role
-     name: pipeline-oadp-role
-   subjects:
-   - kind: ServiceAccount
-     name: pipeline
-     namespace: pipeline-ns   
+     kind: ClusterRole
+     name: pipelines-oadp-role
    ```   
    ```
    $ vi step1-backup-createbackup
