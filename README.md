@@ -1,10 +1,10 @@
 
 # OADP (Velero) + OpenShift Pipelines (Tekton) POC
 
-A short proof of concert involving the use of OADP (Velero), Restic and OpenShift Pipelines (Tekton) to automate the backup and restoration of namespace data into local NFS storage.  
+A short proof of concert involving the use of OADP (Velero), Restic and OpenShift Pipelines (Tekton) to automate the backup and restoration of namespace data, to and fro local NFS storage.  
 
-Part 1: https://www.youtube.com/watch?v=nQsMf-Lc7FY  
-Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk  
+Demo Part 1 (Backup): https://www.youtube.com/watch?v=nQsMf-Lc7FY  
+Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk  
 ## Backup Architecture
 ![Screenshot 2023-07-22 004822](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/b92f707e-b057-448f-9a2c-ae76dbf50dc9)
 ### Flow Of Architecture:  
@@ -82,8 +82,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
 4. **(Optional)** Deploying an application  
 
    I will be deploying a stateful MySQL application in the **mysql-persistent** namespace.  
-   This same application will be used for the backup and restoration process in this example.
-   
+   This same application will be used for the backup and restoration process in this example.  
    (Credits to https://github.com/openshift/oadp-operator/tree/master/tests/e2e/sample-applications/mysql-persistent)
    ```
    $ vi mysql-persistent.yaml
@@ -278,34 +277,68 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    # If the application is unable to deploy due to permission issues, assign privileged SCC to mysql-persistent ServiceAccount.
    $ oc adm policy add-scc-to-user privileged system:serviceaccount:mysql-persistent:mysql-persistent-sa
    ```
-4. Creating ObjectBucket Secret  
+5. Creating a namespace dedicated for OpenShift Pipelines resources
 
-   We will need to create a Secret object to store our bucket's "ACCESS_KEY_ID" and "SECRET_ACCESS_KEY", as required on step 2 of our backup task.  
-
-   Ensure that your Secret is in:
-   - The same namespace as where your Pipelines will be running
-   - Different namespace from your application that you're backing up
-
-   I will be saving it under the "default" namespace, as my Pipelines will be running in the "default" namespace as well.  
+   We will be creating a new namespace called **pipeline-ns, and all resources related to OpenShift Pipelines (e.g. tasks, pipeline, pipelineRun) will be saved here moving forward.** 
    ```
-   $ oc create secret generic bucket-secret --from-literal=AWS_ACCESS_KEY_ID=<your AWS access key ID> --from-literal=AWS_SECRET_ACCESS_KEY=<your AWS secret access key> -n default
+   $ oc new-project pipeline-ns
    ```
    
-6. **(Optional)** Creating ConfigMap for NFS server  
+6. Creating ObjectBucket Secret  
 
-   As my NFS server is an EC2 instance, I have created a ConfigMap object to mount my SSH identity file onto another Tekton workspace.
+   We will need to create a Secret object to store our bucket "ACCESS_KEY_ID" and "SECRET_ACCESS_KEY" (which is required on step 2 of our backup task).  
+   ```
+   $ oc create secret generic bucket-secret -n pipeline-ns \
+   --from-literal=AWS_ACCESS_KEY_ID=<your AWS access key ID> \
+   --from-literal=AWS_SECRET_ACCESS_KEY=<your AWS secret access key>
+   ```
    
-   Ensure that your ConfigMap is in:
-   - The same namespace as where your Pipelines will be running
-   - Different namespace from your application that you're backing up
+7. **(Optional)** Creating ConfigMap for NFS server  
 
-    I will be saving it under the "default" namespace, as my Pipelines will be running in the "default" namespace as well.    
+   As my NFS server is an EC2 instance, I have created a ConfigMap object to mount my EC2 identity file into a Tekton workspace (to allow the Tekton pod to SCP into my NFS server).  
    ```
-   $ oc create configmap --from-file=./nfsserver.pem -n default
+   $ oc create configmap --from-file=./nfsserver.pem -n pipeline-ns
    ```
 
-7. Creating Backup tasks on OpenShift Pipelines (Tekton)
+8. Creating Backup tasks on OpenShift Pipelines (Tekton)  
 
+   To allow the Pipelines ServiceAccount to work with OADP resources, create a new Role and RoleBinding with the appropriate permissions.
+   ```
+   # Error message without SCC
+   from server for: "STDIN": backups.velero.io "backup" is forbidden: User "system:serviceaccount:pipeline-ns:pipeline" cannot get resource "backups" in API group "velero.io" in the namespace "openshift-adp"
+
+   $ vi pipelines-oadp-role.yaml
+   apiVersion: rbac.authorization.k8s.io/v1
+   kind: Role
+   metadata:
+     name: pipelines-oadp-role
+     namespace: pipeline-ns
+   rules:
+     - apiGroups:
+         - ''
+       resources:
+         - backups
+       verbs:
+         - get
+         - watch
+         - list
+         - delete
+
+   $ vi pipelines-oadp-rb.yaml
+   apiVersion: rbac.authorization.k8s.io/v1
+   kind: RoleBinding
+   metadata:
+     name: pipelines-oadp-rb
+     namespace: pipeline-ns
+   roleRef:
+     apiGroup: rbac.authorization.k8s.io
+     kind: Role
+     name: pipeline-oadp-role
+   subjects:
+   - kind: ServiceAccount
+     name: pipeline
+     namespace: pipeline-ns   
+   ```   
    ```
    $ vi step1-backup-createbackup
 
@@ -314,6 +347,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    kind: Task
    metadata:
      name: step1-backup-createbackup
+     namespace: pipeline-ns
    spec:
      params:
        - name: name-of-backup
@@ -350,6 +384,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    kind: Task
    metadata:
      name: step2-backup-s3toworkspace
+     namespace: pipeline-ns
    spec:
      workspaces:
        - name: bucket-prefix
@@ -382,6 +417,7 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
    kind: Task
    metadata:
      name: step3-backup-workspacetonfs
+     namespace: pipeline-ns
    spec:
      workspaces:
        - name: bucket-prefix
@@ -409,12 +445,12 @@ Part 2: https://www.youtube.com/watch?v=ut_wI0EHzlk
 
    $ oc apply -f step3-backup-workspacetonfs
    ```
-8. Creating Pipeline and PipelineRun resources
+10. Creating Pipeline and PipelineRun resources
    
    You may refer to the PoC video (https://www.youtube.com/watch?v=nQsMf-Lc7FY) @ 7:55 onwards, to observe how the Pipeline can be created via GUI.  
    (Ensure that the Pipeline and PipelineRun resources are created on the same namespace as your Bucket Secret and ConfigMap objects.)  
 
-9. Upon successful execution of the Pipeline, the Velero backup data files should show up on your local NFS server.
+11. Upon successful execution of the Pipeline, the Velero backup data files should show up on your local NFS server.
    ```
    [ec2-user@ip-192-168-0-90 ~]$ cd sno
 
