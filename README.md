@@ -446,7 +446,95 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
 10. Creating Pipeline and PipelineRun resources
    ```
    $ vi backup-pipeline.yaml
-
+   apiVersion: tekton.dev/v1beta1
+   kind: Pipeline
+   metadata:
+     name: backup-pipeline
+     namespace: pipeline-ns
+   spec:
+     params:
+       - name: name-of-backup
+         default: backup
+       - name: namespace-to-backup
+         default: mysql-persistent
+       - name: oadp-dpa-location
+         default: default-oadp-1
+       - name: bucket-name
+         default: s3-oadp
+       - name: bucket-secret
+         default: bucket-secret
+       - name: ssh-fingerprint
+         default: >-
+           ssh-rsa
+           AAAAB3NzaC1yc2EAAAADAQABAAABgQC0FTxXx5a6q3eKBBHNE8Kzd8MojdCsNjxHK3iPjnorxhddURwQsnXY6Dfu+FN2dI9GfHetv+2dSdooYDzlD61kf07BLDbA2wmIIGjruxLOUIsiXnRnYz1Df6Inhja1CYNDDuOpc0puO9ZhAMbQaCkq4EIBt6WPVTNQbybKeyTqnbzI2ksKjcIN46tJXpP7x89sYhFm0PKs9+52LdDmapOKLgTy2LvJpyN7txBJXP30l06s0zckAf4SHVUlhJNJimup3TMC1K2CXMkTQga0hQn/rnujgg6HrWLZxspG/laAamzj22ylPcfPyNMy3qvShQusUv5kJb6SNDXrK8kZRNsepyhMBSMydqCCcXO/XcmqbGv0AihQ2xB5rUYgf9tdwFTtL2AJVyt6FnilV5fFnI+1Twy7pRCDvkmfsStYiO6P79FOhGs0H7wCUG3Fg1inQyxP7MYq8wouejWniWFZmkNSabD/xOr8zErF/wHxm+7H8FriboHyZ85FEECrGVKAGD0=
+           root@ip-192-168-8-53.ap-southeast-1.compute.internal
+       - name: nfs-user
+         default: ec2-user
+       - name: nfs-server-ip
+         default: 192.168.1.90
+       - name: nfs-directory
+         default: /home/ec2-user
+     workspaces:
+       - name: bucket-prefix
+         optional: false
+       - name: nfsserver.pem
+         optional: false
+     tasks:
+       - name: step1-backup-createbackup
+         taskRef:
+           kind: Task
+           name: step1-backup-createbackup
+         params:
+           - name: name-of-backup
+             value: $(params.name-of-backup)
+           - name: namespace-to-backup
+             value: $(params.namespace-to-backup)
+           - name: oadp-dpa-location
+             value: $(params.oadp-dpa-location)
+       - name: step2-backup-s3toworkspace
+         runAfter:
+           - step1-backup-createbackup
+         taskRef:
+           kind: Task
+           name: step2-backup-s3toworkspace
+         params:
+           - name: name-of-backup
+             value: $(params.name-of-backup)
+           - name: namespace-to-backup
+             value: $(params.namespace-to-backup)
+           - name: bucket-name
+             value: $(params.bucket-name)
+           - name: bucket-secret
+             value: $(params.bucket-secret)
+         workspaces:
+           - name: bucket-prefix
+             workspace: bucket-prefix
+       - name: step3-backup-workspacetonfs
+         runAfter:
+           - step2-backup-s3toworkspace
+         taskRef:
+           kind: Task
+           name: step3-backup-workspacetonfs
+         params:
+           - name: name-of-backup
+             value: $(params.name-of-backup)
+           - name: bucket-name
+             value: $(params.bucket-name)
+           - name: bucket-secret
+             value: $(params.bucket-secret)
+           - name: ssh-fingerprint
+             value: $(params.ssh-fingerprint)
+           - name: nfs-user
+             value: $(params.nfs-user)
+           - name: nfs-server-ip
+             value: $(params.nfs-server-ip)
+           - name: nfs-directory
+             value: $(params.nfs-directory)
+         workspaces:
+           - name: bucket-prefix
+             workspace: bucket-prefix
+           - name: nfsserver.pem
+             workspace: nfsserver.pem
    ```
 
 11. Upon successful execution of the Pipeline, the Velero backup data files should show up on your local NFS server.
