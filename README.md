@@ -443,7 +443,20 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
 
    $ oc apply -f step3-backup-workspacetonfs
    ```
-10. Creating Pipeline and PipelineRun resources
+   
+9. Creating Pipeline and PipelineRun resources  
+
+   Description of OADP parameters:
+   - name-of-backup: Name of backup CR (don't create multiple backups of same name, Pipeline will not take effect)
+   - namespace-to-backup: Name of namespace to be backed up
+   - oadp-dpa-location: DPA Location name (oc get BackupStorageLocation -n openshift-adp)
+   - bucket-name: Name of S3 bucket to store your Velero data files
+   - bucket-secret: Secret Object name (which consists of your bucket access key id, secret key etc.)
+   - ssh-fingerprint: SSH fingerprint of NFS server (public key)
+   - nfs-user: Name of user of NFS server
+   - nfs-server-ip: IP address of NFS server
+   - nfs-directory: Directory of NFS server, where the Velero files will be stored in
+     
    ```
    $ vi backup-pipeline.yaml
    apiVersion: tekton.dev/v1beta1
@@ -591,7 +604,7 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
    $ oc apply -f backup-pipelinerun.yaml
    ```
 
-10. Upon successful execution of the Pipeline, the Velero backup data files should show up on your local NFS server.
+11. Upon successful execution of the Pipeline, the Velero backup data files should appear in your local NFS server.
    ```
    [ec2-user@ip-192-168-0-90 ~]$ cd sno
 
@@ -613,11 +626,12 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
    config  data  index  keys  snapshots
    ```
 ## Restoration Pipeline Instructions   
-The restoration pipeline would be the exact same steps as the backup pipeline, but in a reverse manner.  
+The restoration pipeline would be the exact same steps as the backup pipeline, but in reverse order.  
 
-It is made with the assumptions listed below:  
-1. Your Velero backup data files exist only in your local NFS server, and not in your S3 bucket.  
-2. Performed in another cluster. (Pipeline can be executed in the same cluster, but remember to delete the existing backupRepository before restoring - see [Bugs Encountered](#bugs-encountered)).
+Pipeline is executed with the assumptions listed below:  
+1. Your Velero backup data files exist only in your local NFS server.
+2. Your S3 bucket is empty.  
+3. Performed in another cluster. (Pipeline can be executed in the same cluster, but delete the existing backupRepository before restoring - see [Bugs Encountered](#bugs-encountered)).
 
 Creating Backup tasks on OpenShift Pipelines (Tekton)
    ```
