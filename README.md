@@ -333,6 +333,9 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
      apiGroup: rbac.authorization.k8s.io
      kind: ClusterRole
      name: pipelines-oadp-role
+
+   $ oc apply -f pipelines-oadp-role.yaml
+   $ oc apply -f pipelines-oadp-rb.yaml
    ```   
    ```
    $ vi step1-backup-createbackup
