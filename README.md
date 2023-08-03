@@ -408,14 +408,12 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
    ```
    ```
    $ vi step3-backup-workspacetonfs.yaml
-   
    # Task 3: SCP files from Tekton workspace into local NFS server
-   # Note: As pods are ephemeral for each TaskRun, we need to add the host fingerprint manually in the task. If not, the pipeline will fail due to permission issues.
+   # As pods are ephemeral by nature, we need to add the host fingerprint manually for every instance of a task pod (else the pipeline will fail due to permission issues).
    apiVersion: tekton.dev/v1beta1
    kind: Task
    metadata:
      name: step3-backup-workspacetonfs
-     namespace: pipeline-ns
    spec:
      workspaces:
        - name: bucket-prefix
@@ -427,7 +425,9 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
        - name: bucket-name
        - name: bucket-secret
        - name: ssh-fingerprint
-         default: <your-nfs-server-fingerprint-here>
+       - name: nfs-user
+       - name: nfs-server-ip
+       - name: nfs-directory
      steps:
        - name: workspace-to-nfs
          image: quay.io/devfile/base-developer-image:ubi8-latest
@@ -439,14 +439,102 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
            - |-
              mkdir ~/.ssh/
              echo "$(params.ssh-fingerprint)" > ~/.ssh/known_hosts
-             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" $(workspaces.bucket-prefix.path)/ <user>@<your-nfs-server-ip>:<directory>
+             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" $(workspaces.bucket-prefix.path)/ $(params.nfs-user)@$(params.nfs-server-ip):$(params.nfs-directory)
 
    $ oc apply -f step3-backup-workspacetonfs
    ```
 10. Creating Pipeline and PipelineRun resources
-   
-   You may refer to the PoC video (https://www.youtube.com/watch?v=nQsMf-Lc7FY) @ 7:55 onwards, to observe how the Pipeline can be created via GUI.  
-   (Ensure that the Pipeline and PipelineRun resources are created on the same namespace as your Bucket Secret and ConfigMap objects.)  
+   ```
+   $ vi backup-pipeline.yaml
+
+   apiVersion: tekton.dev/v1beta1
+   kind: Pipeline
+   metadata:
+     name: backup-pipeline
+     namespace: pipeline-ns
+   spec:
+     params:
+       - name: name-of-backup
+         default: backup
+       - name: namespace-to-backup
+         default: mysql-persistent
+       - name: oadp-dpa-location
+         default: default-oadp-1
+       - name: bucket-name
+         default: s3-oadp
+       - name: bucket-secret
+         default: bucket-secret
+       - name: ssh-fingerprint
+         default: '123456'
+       - name: nfs-user
+         default: ec2-user
+       - name: nfs-server-ip
+         default: 192.168.1.90
+       - name: nfs-directory
+         default: /home/ec2-user
+     resources: []
+     workspaces:
+       - name: bucket-prefix
+         optional: false
+       - name: nfsserver.pem
+         optional: false
+     tasks:
+       - name: step1-backup-createbackup
+         taskRef:
+           kind: Task
+           name: step1-backup-createbackup
+         params:
+           - name: name-of-backup
+             value: $(params.name-of-backup)
+           - name: namespace-to-backup
+             value: $(params.namespace-to-backup)
+           - name: oadp-dpa-location
+             value: $(params.oadp-dpa-location)
+       - name: step2-backup-s3toworkspace
+         runAfter:
+           - step1-backup-createbackup
+         taskRef:
+           kind: Task
+           name: step2-backup-s3toworkspace
+         params:
+           - name: name-of-backup
+             value: $(params.name-of-backup)
+           - name: namespace-to-backup
+             value: $(params.namespace-to-backup)
+           - name: bucket-name
+             value: $(params.bucket-name)
+           - name: bucket-secret
+             value: $(params.bucket-secret)
+         workspaces:
+           - name: bucket-prefix
+             workspace: bucket-prefix
+       - name: step3-backup-workspacetonfs
+         runAfter:
+           - step2-backup-s3toworkspace
+         taskRef:
+           kind: Task
+           name: step3-backup-workspacetonfs
+         params:
+           - name: name-of-backup
+             value: $(params.name-of-backup)
+           - name: bucket-name
+             value: $(params.bucket-name)
+           - name: bucket-secret
+             value: $(params.bucket-secret)
+           - name: ssh-fingerprint
+             value: $(params.ssh-fingerprint)
+           - name: nfs-user
+             value: $(params.nfs-user)
+           - name: nfs-server-ip
+             value: $(params.nfs-server-ip)
+           - name: nfs-directory
+             value: $(params.nfs-directory)
+         workspaces:
+           - name: bucket-prefix
+             workspace: bucket-prefix
+           - name: nfsserver.pem
+             workspace: nfsserver.pem
+   ```
 
 11. Upon successful execution of the Pipeline, the Velero backup data files should show up on your local NFS server.
    ```
