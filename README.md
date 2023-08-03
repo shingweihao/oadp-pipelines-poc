@@ -587,9 +587,11 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
      - configMap:
          name: nfsserver.pem
        name: nfsserver.pem
+
+   $ oc apply -f backup-pipelinerun.yaml
    ```
 
-11. Upon successful execution of the Pipeline, the Velero backup data files should show up on your local NFS server.
+10. Upon successful execution of the Pipeline, the Velero backup data files should show up on your local NFS server.
    ```
    [ec2-user@ip-192-168-0-90 ~]$ cd sno
 
