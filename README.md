@@ -467,7 +467,7 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
          default: >-
            ssh-rsa
            AAAAB3NzaC1yc2EAAAADAQABAAABgQC0FTxXx5a6q3eKBBHNE8Kzd8MojdCsNjxHK3iPjnorxhddURwQsnXY6Dfu+FN2dI9GfHetv+2dSdooYDzlD61kf07BLDbA2wmIIGjruxLOUIsiXnRnYz1Df6Inhja1CYNDDuOpc0puO9ZhAMbQaCkq4EIBt6WPVTNQbybKeyTqnbzI2ksKjcIN46tJXpP7x89sYhFm0PKs9+52LdDmapOKLgTy2LvJpyN7txBJXP30l06s0zckAf4SHVUlhJNJimup3TMC1K2CXMkTQga0hQn/rnujgg6HrWLZxspG/laAamzj22ylPcfPyNMy3qvShQusUv5kJb6SNDXrK8kZRNsepyhMBSMydqCCcXO/XcmqbGv0AihQ2xB5rUYgf9tdwFTtL2AJVyt6FnilV5fFnI+1Twy7pRCDvkmfsStYiO6P79FOhGs0H7wCUG3Fg1inQyxP7MYq8wouejWniWFZmkNSabD/xOr8zErF/wHxm+7H8FriboHyZ85FEECrGVKAGD0=
-           root@ip-192-168-8-53.ap-southeast-1.compute.internal
+           root@ip-192-168-1-90.ap-southeast-1.compute.internal
        - name: nfs-user
          default: ec2-user
        - name: nfs-server-ip
@@ -535,6 +535,58 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
              workspace: bucket-prefix
            - name: nfsserver.pem
              workspace: nfsserver.pem
+
+   $ oc apply -f backup-pipeline.yaml
+   ```
+   ```
+   $ vi backup-pipelinerun.yaml
+
+   apiVersion: tekton.dev/v1
+   kind: PipelineRun
+   metadata:
+     name: backup-pipelinerun
+     namespace: pipeline-ns
+   spec:
+     params:
+     - name: name-of-backup
+       value: backup
+     - name: namespace-to-backup
+       value: mysql-persistent
+     - name: oadp-dpa-location
+       value: default-oadp-1
+     - name: bucket-name
+       value: s3-oadp
+     - name: bucket-secret
+       value: bucket-secret
+     - name: ssh-fingerprint
+       value: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC0FTxXx5a6q3eKBBHNE8Kzd8MojdCsNjxHK3iPjnorxhddURwQsnXY6Dfu+FN2dI9GfHetv+2dSdooYDzlD61kf07BLDbA2wmIIGjruxLOUIsiXnRnYz1Df6Inhja1CYNDDuOpc0puO9ZhAMbQaCkq4EIBt6WPVTNQbybKeyTqnbzI2ksKjcIN46tJXpP7x89sYhFm0PKs9+52LdDmapOKLgTy2LvJpyN7txBJXP30l06s0zckAf4SHVUlhJNJimup3TMC1K2CXMkTQga0hQn/rnujgg6HrWLZxspG/laAamzj22ylPcfPyNMy3qvShQusUv5kJb6SNDXrK8kZRNsepyhMBSMydqCCcXO/XcmqbGv0AihQ2xB5rUYgf9tdwFTtL2AJVyt6FnilV5fFnI+1Twy7pRCDvkmfsStYiO6P79FOhGs0H7wCUG3Fg1inQyxP7MYq8wouejWniWFZmkNSabD/xOr8zErF/wHxm+7H8FriboHyZ85FEECrGVKAGD0=
+         root@ip-192-168-1-90.ap-southeast-1.compute.internal
+     - name: nfs-user
+       value: ec2-user
+     - name: nfs-server-ip
+       value: 192.168.1.90
+     - name: nfs-directory
+       value: /home/ec2-user
+     pipelineRef:
+       name: backup-pipeline
+     taskRunTemplate:
+       serviceAccountName: pipeline
+     timeouts:
+       pipeline: 1h0m0s
+     workspaces:
+     - name: bucket-prefix
+       volumeClaimTemplate:
+         spec:
+           accessModes:
+           - ReadWriteOnce
+           resources:
+             requests:
+               storage: 1Gi
+           storageClassName: gp3-csi
+           volumeMode: Filesystem
+     - configMap:
+         name: nfsserver.pem
+       name: nfsserver.pem
    ```
 
 11. Upon successful execution of the Pipeline, the Velero backup data files should show up on your local NFS server.
