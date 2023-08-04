@@ -474,7 +474,8 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
    - nfs-user: Name of user of NFS server
    - nfs-server-ip: IP address of NFS server
    - nfs-directory: Directory of NFS server, where the Velero files will be stored in
-     
+
+   To edit the default values of the Pipeline parameters, you can change it directly from the YAML file or via the Pipeline Builder GUI in the OpenShift console (Actions > Edit Pipeline).
    ```
    $ vi backup-pipeline.yaml
    apiVersion: tekton.dev/v1beta1
@@ -742,9 +743,149 @@ Pipeline is executed with the assumptions listed below:
 2. Creating restore Pipeline and PipelineRun CR
    ```
    $ vi restore-pipeline.yaml
+   
+   apiVersion: tekton.dev/v1beta1
+   kind: Pipeline
+   metadata:
+     name: restore-pipeline
+     namespace: pipeline-ns
+   spec:
+     params:
+       - name: name-of-backup
+         default: backup
+       - name: bucket-name
+         default: s3-oadp
+       - name: bucket-secret
+         default: bucket-secret
+       - name: ssh-fingerprint
+         default: >-
+           AAAAB3NzaC1yc2EAAAADAQABAAABgQC0FTxXx5a6q3eKBBHNE8Kzd8MojdCsNjxHK3iPjnorxhddURwQsnXY6Dfu+FN2dI9GfHetv+2dSdooYDzlD61kf07BLDbA2wmIIGjruxLOUIsiXnRnYz1Df6Inhja1CYNDDuOpc0puO9ZhAMbQaCkq4EIBt6WPVTNQbybKeyTqnbzI2ksKjcIN46tJXpP7x89sYhFm0PKs9+52LdDmapOKLgTy2LvJpyN7txBJXP30l06s0zckAf4SHVUlhJNJimup3TMC1K2CXMkTQga0hQn/rnujgg6HrWLZxspG/laAamzj22ylPcfPyNMy3qvShQusUv5kJb6SNDXrK8kZRNsepyhMBSMydqCCcXO/XcmqbGv0AihQ2xB5rUYgf9tdwFTtL2AJVyt6FnilV5fFnI+1Twy7pRCDvkmfsStYiO6P79FOhGs0H7wCUG3Fg1inQyxP7MYq8wouejWniWFZmkNSabD/xOr8zErF/wHxm+7H8FriboHyZ85FEECrGVKAGD0=         
+           root@ip-192-168-1-90.ap-southeast-1.compute.internal
+       - name: nfs-user
+         default: ec2-user
+       - name: nfs-server-ip
+         default: 192.168.1.90
+       - name: nfs-directory
+         default: /home/ec2-user/
+       - name: name-of-restore
+         default: restore
+       - name: namespace-to-restore
+         default: mysql-persistent
+       - name: oadp-dpa-location
+         default: default-oadp-1
+     workspaces:
+       - name: bucket-prefix
+         optional: false
+       - name: nfsserver.pem
+         optional: false
+     tasks:
+       - name: step1-restore-nfstoworkspace
+         taskRef:
+           kind: Task
+           name: step1-restore-nfstoworkspace
+         params:
+           - name: name-of-backup
+             value: $(params.name-of-backup)
+           - name: bucket-name
+             value: $(params.bucket-name)
+           - name: bucket-secret
+             value: $(params.bucket-secret)
+           - name: ssh-fingerprint
+             value: $(params.ssh-fingerprint)
+           - name: nfs-user
+             value: $(params.nfs-user)
+           - name: nfs-server-ip
+             value: $(params.nfs-server-ip)
+           - name: nfs-directory
+             value: $(params.nfs-directory)
+         workspaces:
+           - name: bucket-prefix
+             workspace: bucket-prefix
+           - name: nfsserver.pem
+             workspace: nfsserver.pem
+       - name: step2-restore-workspacetos3
+         runAfter:
+           - step1-restore-nfstoworkspace
+         taskRef:
+           kind: Task
+           name: step2-restore-workspacetos3
+         params:
+           - name: name-of-backup
+             value: $(params.name-of-backup)
+           - name: bucket-name
+             value: $(params.bucket-name)
+           - name: bucket-secret
+             value: $(params.bucket-secret)
+         workspaces:
+           - name: bucket-prefix
+             workspace: bucket-prefix
+       - name: step3-restore-createrestore
+         runAfter:
+           - step2-restore-workspacetos3
+         taskRef:
+           kind: Task
+           name: step3-restore-createrestore
+         params:
+           - name: name-of-restore
+             value: $(params.name-of-restore)
+           - name: name-of-backup
+             value: $(params.name-of-backup)
+           - name: namespace-to-restore
+             value: $(params.namespace-to-restore)
+           - name: oadp-dpa-location
+             value: $(params.oadp-dpa-location)
+   
+   $ vi restore-pipelinerun.yaml
+   apiVersion: tekton.dev/v1
+   kind: PipelineRun
+   metadata:
+     name: restore-pipeline-qxbrbt
+     namespace: pipeline-ns
+   spec:
+     params:
+     - name: name-of-backup
+       value: backup
+     - name: bucket-name
+       value: s3-oadp
+     - name: bucket-secret
+       value: bucket-secret
+     - name: ssh-fingerprint
+       value: AAAAB3NzaC1yc2EAAAADAQABAAABgQC0FTxXx5a6q3eKBBHNE8Kzd8MojdCsNjxHK3iPjnorxhddURwQsnXY6Dfu+FN2dI9GfHetv+2dSdooYDzlD61kf07BLDbA2wmIIGjruxLOUIsiXnRnYz1Df6Inhja1CYNDDuOpc0puO9ZhAMbQaCkq4EIBt6WPVTNQbybKeyTqnbzI2ksKjcIN46tJXpP7x89sYhFm0PKs9+52LdDmapOKLgTy2LvJpyN7txBJXP30l06s0zckAf4SHVUlhJNJimup3TMC1K2CXMkTQga0hQn/rnujgg6HrWLZxspG/laAamzj22ylPcfPyNMy3qvShQusUv5kJb6SNDXrK8kZRNsepyhMBSMydqCCcXO/XcmqbGv0AihQ2xB5rUYgf9tdwFTtL2AJVyt6FnilV5fFnI+1Twy7pRCDvkmfsStYiO6P79FOhGs0H7wCUG3Fg1inQyxP7MYq8wouejWniWFZmkNSabD/xOr8zErF/wHxm+7H8FriboHyZ85FEECrGVKAGD0=          root@ip-192-168-1-90.ap-southeast-1.compute.internal
+     - name: nfs-user
+       value: ec2-user
+     - name: nfs-server-ip
+       value: 192.168.1.90
+     - name: nfs-directory
+       value: /home/ec2-user/
+     - name: name-of-restore
+       value: restore
+     - name: namespace-to-restore
+       value: mysql-persistent
+     - name: oadp-dpa-location
+       value: default-oadp-1
+     pipelineRef:
+       name: restore-pipeline
+     taskRunTemplate:
+       serviceAccountName: pipeline
+     timeouts:
+       pipeline: 1h0m0s
+     workspaces:
+     - name: bucket-prefix
+       volumeClaimTemplate:
+         spec:
+           accessModes:
+           - ReadWriteOnce
+           resources:
+             requests:
+               storage: 1Gi
+           storageClassName: gp3-csi
+           volumeMode: Filesystem
+     - configMap:
+         name: nfsserver.pem
+       name: nfsserver.pem
 
-   
-   
+   $ oc apply -f restore-pipeline.yaml
+   $ oc apply -f restore-pipelinerun.yaml
    ```
 **The namespace data (and also any applications that reside in it) should be restored to a desired state.**
 ![image](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/2de01da8-1751-46d9-8397-659480d30a5e)
