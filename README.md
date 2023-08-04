@@ -376,7 +376,6 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
    ```
    ```
    $ vi step2-backup-s3toworkspace.yaml
-
    # Task 2: Retrieve Velero backup file from S3 and save into Tekton workspace
    apiVersion: tekton.dev/v1beta1
    kind: Task
@@ -401,8 +400,8 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
          command: ["/bin/bash", "-c"]
          args:
            - |-
-             aws s3 sync s3://$(params.bucket-name)/sno/backups/$(params.name-of-backup)/ $(workspaces.bucket-prefix.path)/backups/$(params.name-of-backup)/
-             aws s3 sync s3://$(params.bucket-name)/sno/restic/ $(workspaces.bucket-prefix.path)/restic/$(params.namespace-to-backup)/
+             aws s3 sync s3://$(params.bucket-name)$(workspaces.bucket-prefix.path)/backups/$(params.name-of-backup)/ $(workspaces.bucket-prefix.path)/backups/$(params.name-of-backup)/
+             aws s3 sync s3://$(params.bucket-name)$(workspaces.bucket-prefix.path)/restic/ $(workspaces.bucket-prefix.path)/restic/$(params.namespace-to-backup)/
 
    $ oc apply -f step2-backup-s3toworkspace.yaml
    ```
