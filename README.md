@@ -461,8 +461,8 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
 
    $ oc apply -f step3-backup-workspacetonfs
    ```
-   
-10. Creating Pipeline and PipelineRun resources  
+
+9. Creating Pipeline and PipelineRun resources  
 
    Description of OADP parameters:
    - name-of-backup: Name of backup CR (don't create multiple backups of same name, Pipeline will not take effect)
