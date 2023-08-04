@@ -304,16 +304,21 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
 
    To setup the Tekton CLI
    ```
-   $ wget https://github.com/tektoncd/cli/releases/download/v0.31.2/tkn_0.31.2_Darwin_all.tar.gz
+   $ wget https://github.com/tektoncd/cli/releases/download/v0.31.2/tkn_0.31.2_Linux_x86_64.tar.gz
 
-   $ tar -xvzf tkn_0.31.2_Darwin_all.tar.gz 
+   $ tar -xvzf tkn_0.31.2_Linux_x86_64.tar.gz
    LICENSE
    README.md
    tkn
 
    $ sudo chmod 775 tkn
    $ sudo cp tkn /usr/bin
-   
+
+   $ tkn version
+   Client version: 0.31.2
+   Pipeline version: v0.44.4
+   Triggers version: v0.23.1
+   Operator version: v0.65.1
    ```
 
    To allow the Pipelines ServiceAccount to work with OADP resources, create a new Role and RoleBinding with the appropriate permissions.
@@ -664,7 +669,9 @@ Creating Backup tasks on OpenShift Pipelines (Tekton)
        - name: bucket-name
        - name: bucket-secret
        - name: ssh-fingerprint
-         default: <your-nfs-server-fingerprint-here>
+       - name: nfs-user
+       - name: nfs-server-ip
+       - name: nfs-directory
      steps:
        - name: nfs-to-workspace
          image: quay.io/devfile/base-developer-image:ubi8-latest
@@ -676,7 +683,7 @@ Creating Backup tasks on OpenShift Pipelines (Tekton)
            - |-
              mkdir ~/.ssh/
              echo "$(params.ssh-fingerprint)" > ~/.ssh/known_hosts
-             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" <user>@<your-nfs-server-ip>:<directory> $(workspaces.bucket-prefix.path)/
+             scp -ri "$(workspaces.nfsserver.pem.path)$(workspaces.nfsserver.pem.path)" $(params.nfs-user)@$(params.nfs-server-ip):$(params.nfs-directory) $(workspaces.bucket-prefix.path)/
    ```
    ```
    # Task 2: Retrieve Velero backup file from Tekton workspace and save into S3
@@ -702,7 +709,7 @@ Creating Backup tasks on OpenShift Pipelines (Tekton)
          args:
            - |-
              aws s3 sync $(workspaces.bucket-prefix.path)/ s3://$(params.bucket-name)/
-             sleep 60 #Buffer time for OADP operator to detect Velero backup data files
+             sleep 60 # Buffer time for OADP operator to detect Velero backup data files
    ```
    ```
    # Task 3: Create Restore CR
@@ -730,12 +737,14 @@ Creating Backup tasks on OpenShift Pipelines (Tekton)
                namespace: openshift-adp
              spec:
                backupName: $(params.name-of-backup)
-               restorePVs: true
              EOF
+   ```
+Creating restore Pipeline and PipelineRun CR
+   ```
+
    ```
 **The namespace data (and also any applications that reside in it) should be restored to a desired state.**
 ![image](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/2de01da8-1751-46d9-8397-659480d30a5e)
-
 
 ## Bugs Encountered
 If you create a Restic `Backup` CR for a namespace, empty the object storage bucket, and then recreate the `Backup` CR for the same namespace, the recreated `Backup` CR fails. 
