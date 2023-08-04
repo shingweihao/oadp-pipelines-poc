@@ -302,6 +302,20 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
 
 8. Creating Backup tasks on OpenShift Pipelines (Tekton)  
 
+   To setup the Tekton CLI
+   ```
+   $ wget https://github.com/tektoncd/cli/releases/download/v0.31.2/tkn_0.31.2_Darwin_all.tar.gz
+
+   $ tar -xvzf tkn_0.31.2_Darwin_all.tar.gz 
+   LICENSE
+   README.md
+   tkn
+
+   $ sudo chmod 775 tkn
+   $ sudo cp tkn /usr/bin
+   
+   ```
+
    To allow the Pipelines ServiceAccount to work with OADP resources, create a new Role and RoleBinding with the appropriate permissions.
    ```
    # Error message without SCC
@@ -438,12 +452,12 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
            - |-
              mkdir ~/.ssh/
              echo "$(params.ssh-fingerprint)" > ~/.ssh/known_hosts
-             scp -ri "$(workspaces.nfsserver.pem.path)/nfsserver.pem" $(workspaces.bucket-prefix.path)/ $(params.nfs-user)@$(params.nfs-server-ip):$(params.nfs-directory)
+             scp -ri "$(workspaces.nfsserver.pem.path)$(workspaces.nfsserver.pem.path)" $(workspaces.bucket-prefix.path)/ $(params.nfs-user)@$(params.nfs-server-ip):$(params.nfs-directory)
 
    $ oc apply -f step3-backup-workspacetonfs
    ```
    
-9. Creating Pipeline and PipelineRun resources  
+10. Creating Pipeline and PipelineRun resources  
 
    Description of OADP parameters:
    - name-of-backup: Name of backup CR (don't create multiple backups of same name, Pipeline will not take effect)
