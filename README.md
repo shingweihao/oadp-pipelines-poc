@@ -647,11 +647,11 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
 The restoration pipeline would be the exact same steps as the backup pipeline, but in reverse order.  
 
 Pipeline is executed with the assumptions listed below:  
-1. Your Velero backup data files exist only in your local NFS server.
-2. Your S3 bucket is empty.  
-3. Performed in another cluster. (Pipeline can be executed in the same cluster, but delete the existing backupRepository before restoring - see [Bugs Encountered](#bugs-encountered)).
+- Your Velero backup data files exist only in your local NFS server.  
+- Your S3 bucket is empty.  
+- Restoration is performed in another cluster. (Pipeline can be executed in the same cluster, but delete the existing backupRepository before restoring - see [Bugs Encountered](#bugs-encountered)).
 
-Creating Backup tasks on OpenShift Pipelines (Tekton)
+1. Creating Backup tasks on OpenShift Pipelines (Tekton)
    ```
    # Task 1: SCP files from NFS server into Tekton workspace
    apiVersion: tekton.dev/v1beta1
@@ -739,9 +739,12 @@ Creating Backup tasks on OpenShift Pipelines (Tekton)
                backupName: $(params.name-of-backup)
              EOF
    ```
-Creating restore Pipeline and PipelineRun CR
+2. Creating restore Pipeline and PipelineRun CR
    ```
+   $ vi restore-pipeline.yaml
 
+   
+   
    ```
 **The namespace data (and also any applications that reside in it) should be restored to a desired state.**
 ![image](https://github.com/shingweihao/oadp-pipelines-poc/assets/122070690/2de01da8-1751-46d9-8397-659480d30a5e)
