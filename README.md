@@ -391,7 +391,7 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
                storageLocation: $(params.oadp-dpa-location)
              EOF
 
-   $ oc apply -f backup-tasks/step1-backup-createbackup
+   $ oc apply -f step1-backup-createbackup
    ```
    ```
    $ vi step2-backup-s3toworkspace.yaml
@@ -651,6 +651,7 @@ Pipeline is executed with the assumptions listed below:
 - Your Velero backup data files exist only in your local NFS server.  
 - Your S3 bucket is empty.  
 - Restoration is performed in another cluster. (Pipeline can be executed in the same cluster, but delete the existing backupRepository before restoring - see [Bugs Encountered](#bugs-encountered)).
+- Pre-requisites such DPA, peering rules, Role/RoleBindings etc. have been setup in your new cluster to allow for the restoration pipeline process.
 
 1. Creating Backup tasks on OpenShift Pipelines (Tekton)
    ```
