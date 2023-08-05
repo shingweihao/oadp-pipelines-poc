@@ -279,7 +279,7 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
    ```
 5. Creating a namespace dedicated for OpenShift Pipelines resources
 
-   We will be creating a new namespace called **pipeline-ns, and all resources related to OpenShift Pipelines (e.g. tasks, pipeline, pipelineRun) will be saved here moving forward.** 
+   We will be creating a new namespace called **pipeline-ns, and all resources created will reside here.**
    ```
    $ oc new-project pipeline-ns
    ```
@@ -302,25 +302,6 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
 
 8. Creating Backup tasks on OpenShift Pipelines (Tekton)  
 
-   To setup the Tekton CLI
-   ```
-   $ wget https://github.com/tektoncd/cli/releases/download/v0.31.2/tkn_0.31.2_Linux_x86_64.tar.gz
-
-   $ tar -xvzf tkn_0.31.2_Linux_x86_64.tar.gz
-   LICENSE
-   README.md
-   tkn
-
-   $ sudo chmod 775 tkn
-   $ sudo cp tkn /usr/bin
-
-   $ tkn version
-   Client version: 0.31.2
-   Pipeline version: v0.44.4
-   Triggers version: v0.23.1
-   Operator version: v0.65.1
-   ```
-
    To allow the Pipelines ServiceAccount to work with OADP resources, create a new Role and RoleBinding with the appropriate permissions.
    ```
    # Error message without SCC
@@ -339,22 +320,8 @@ Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk
        verbs:
          - '*'
    
-   $ vi pipelines-oadp-rb.yaml
-   apiVersion: rbac.authorization.k8s.io/v1
-   kind: ClusterRoleBinding
-   metadata:
-     name: pipelines-oadp-rb
-   subjects:
-     - kind: ServiceAccount
-       name: pipeline
-       namespace: pipeline-ns
-   roleRef:
-     apiGroup: rbac.authorization.k8s.io
-     kind: ClusterRole
-     name: pipelines-oadp-role
-
    $ oc apply -f pipelines-oadp-role.yaml
-   $ oc apply -f pipelines-oadp-rb.yaml
+   $ oc adm add-cluster-role-to-user pipelines-oadp-role system:serviceaccount:pipeline-ns:pipeline
    ```   
    ```
    $ vi step1-backup-createbackup
