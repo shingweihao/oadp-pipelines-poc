@@ -8,4 +8,6 @@ rules:
     resources:
       - backups
     verbs:
-      - '*'
+      - '*' # Used all verbs for testing + convenience purpose ONLY, please allocate the appropriate permissions on your environment!
+
+
