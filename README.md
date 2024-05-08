@@ -1,7 +1,7 @@
 # OADP (Velero) + OpenShift Pipelines (Tekton) POC
 OpenShift OADP (Velero) can backup and restore stateful applications and resources of a particular namespace, to and fro an OpenShift cluster and a S3-compatible object storage, either using VolumeSnapshot or Restic.
 
-This is a simple proof-of-concept involving the use of OADP (Velero) & OpenShift Pipelines (Tekton) to orchestrate the backup and restoration of Kubernetes application - to and fro local NFS storage using a pipeline.
+This is a simple proof-of-concept involving the use of OADP (Velero) & OpenShift Pipelines (Tekton) to orchestrate the backup and restoration of Kubernetes applications - to and fro local NFS storage using a pipeline.
 
 Demo Part 1 (Backup): https://www.youtube.com/watch?v=nQsMf-Lc7FY  
 Demo Part 2 (Restore): https://www.youtube.com/watch?v=ut_wI0EHzlk  
